@@ -17,7 +17,7 @@ class Table implements ICRUD
         $this->state = 'con cliente esperando pedido';
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO mesas(code, id_order, state, cost) VALUES (:code, :id_order, :state, :cost)");
-
+//agregar id cliente
         $consulta->bindValue(':id_order', $this->id_order, PDO::PARAM_INT);
         $consulta->bindValue(':code', $this->code, PDO::PARAM_STR);
         $consulta->bindValue(':state', $this->state, PDO::PARAM_STR);
@@ -34,6 +34,17 @@ class Table implements ICRUD
         $consulta->execute();
 
         return array_map('filterNumericKeys', $consulta->fetchAll());
+    }
+
+    public static function updateCost($code, $cost)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $query = $objAccesoDatos->prepararConsulta("UPDATE mesas SET cost = :cost WHERE code = :code");
+        $query->bindValue(':code', $code, PDO::PARAM_STR);
+        $query->bindValue(':cost', $cost, PDO::PARAM_INT);
+        $query->execute();
+
+        return array_map('filterNumericKeys', $query->fetchAll());
     }
 
     public static function update($id, $code, $id_order, $state, $cost)

@@ -14,6 +14,10 @@ require_once './controllers/ProductController.php';
 require_once './controllers/OrderController.php';
 require_once './controllers/TableController.php';
 require_once './db/AccesoDatos.php';
+require_once './middlewares/AuthMiddleware.php';
+require_once './middlewares/OrderMiddleware.php';
+
+
 
 // Instantiate App
 $app = AppFactory::create();
@@ -39,10 +43,10 @@ $app->get('[/]', function (Request $request, Response $response) {
 
 
 $app->group('/users', function (RouteCollectorProxy $group) {
-    $group->post('/workers/employers', \EmployerController::class . ':CargarUno');
+    $group->post('/workers/employers', \EmployerController::class . ':CargarUno')->add(\AuthMiddleware::class . ':CheckUsername')->add(new AuthMiddleware());
     $group->get('/workers/employers', \EmployerController::class . ':TraerTodos');
     $group->put('/workers/employers/{id}', \EmployerController::class . ':ModificarUno');
-    $group->delete('/workers/employers/{id}', \EmployerController::class . ':BorrarUno');
+    $group->delete('/workers/employers', \EmployerController::class . ':BorrarUno')->add(new AuthMiddleware());
 });
 
 $app->group('/products', function (RouteCollectorProxy $group) {
@@ -53,9 +57,10 @@ $app->group('/products', function (RouteCollectorProxy $group) {
 });
 
 $app->group('/orders', function (RouteCollectorProxy $group) {
-    $group->post('[/]', \OrderController::class . ':CargarUno');
+    $group->post('[/]', \OrderController::class . ':CargarUno')->add(new OrderMiddleware());
     $group->get('[/]', \OrderController::class . ':TraerTodos');
     $group->get('/{id}', \OrderController::class . ':TraerUno');
+    $group->put('/prepare', \OrderController::class . ':Prepare');
     $group->delete('/{id}', \OrderController::class . ':BorrarUno');
 
 

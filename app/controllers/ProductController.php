@@ -49,6 +49,16 @@ class ProductController extends Product implements IApiUsable
         return $response
           ->withHeader('Content-Type', 'application/json');
     }
+
+    public function TraerUnoPorNombre($request, $response, $args)
+    {
+        $lista = Product::fetchOneByName($args['name']);
+        $payload = json_encode(array("response" => $lista));
+
+        $response->getBody()->write($payload);
+        return $response
+          ->withHeader('Content-Type', 'application/json');
+    }
     
     public function ModificarUno($request, $response, $args)
     {

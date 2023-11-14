@@ -5,10 +5,9 @@ include_once 'utils/filterNumericKeys.php';
 class Order implements ICRUD
 {
     public $state;
-    public $amount_foods;
-    public $amount_drinks;
-    public $foods;
-    public $drinks;
+    public $id_food;
+    public $id_drink;
+    public $code_table;
     public $cost;
     public $time;
 
@@ -16,13 +15,13 @@ class Order implements ICRUD
     {
         $this->state = 'en preparacion';
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos(state, amount_foods, amount_drinks, foods, drinks, cost, time) VALUES (:state, :amount_foods, :amount_drinks, :foods, :drinks, :cost, :time)");
-
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (code, state, id_food, id_drink, code_table, cost, time) VALUES (:code, :state, :id_food, :id_drink, :code_table, :cost, :time)");
+//nota: ver si se puede ser un id_drinks y id_foods que sea a products
+        $consulta->bindValue(':code', date('his'), PDO::PARAM_INT);
         $consulta->bindValue(':state', $this->state, PDO::PARAM_STR);
-        $consulta->bindValue(':amount_foods', $this->amount_foods, PDO::PARAM_INT);
-        $consulta->bindValue(':amount_drinks', $this->amount_drinks, PDO::PARAM_INT);
-        $consulta->bindValue(':foods', $this->foods, PDO::PARAM_STR);
-        $consulta->bindValue(':drinks', $this->drinks, PDO::PARAM_STR);
+        $consulta->bindValue(':id_food', $this->id_food, PDO::PARAM_INT);
+        $consulta->bindValue(':id_drink', $this->id_drink, PDO::PARAM_INT);
+        $consulta->bindValue(':code_table', $this->code_table, PDO::PARAM_INT);
         $consulta->bindValue(':cost', $this->cost, PDO::PARAM_INT);
         $consulta->bindValue(':time', $this->time);
         $consulta->execute();
@@ -49,13 +48,31 @@ class Order implements ICRUD
         return array_map('filterNumericKeys', $consulta->fetchAll());
     }
 
-    public static function update($id, $type, $name)
+    public static function update($order)
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE pedidos SET type = :type, name = :name WHERE id = :id");
-        $consulta->bindValue(':type', $type, PDO::PARAM_STR);
-        $consulta->bindValue(':name', $name, PDO::PARAM_STR);
+        $consulta = $objAccesoDato->prepararConsulta("UPDATE pedidos SET state = :state, begin_time = :begin_time, end_time = :end_time WHERE id = :id");
+        $consulta->bindValue(':state', $order['state'], PDO::PARAM_STR);
+        $consulta->bindValue(':id', $order['id'], PDO::PARAM_INT);
+        $consulta->bindValue(':begin_time', $order['begin_time'], PDO::PARAM_STR);
+        $consulta->bindValue(':end_time', $order['begin_time'], PDO::PARAM_INT);
+        $consulta->execute();
+    }
+
+    public static function next()
+    {
+        $objAccesoDato = AccesoDatos::obtenerInstancia();
+        $querry = $objAccesoDato->prepararConsulta("SELECT * FROM pedidos WHERE state = 'en preparacion' AND canceled = 0 AND deleted = 0 LIMIT 1");
+        $querry->execute();
+        return array_map('filterNumericKeys', $querry->fetchAll());
+    }
+
+    public static function cancel($id)
+    {
+        $objAccesoDato = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDato->prepararConsulta("UPDATE pedidos SET canceled = :canceled WHERE id = :id");
         $consulta->bindValue(':id', $id, PDO::PARAM_INT);
+        $consulta->bindValue(':canceled', true, PDO::PARAM_BOOL);
         $consulta->execute();
     }
 

@@ -23,6 +23,10 @@ class ComposerStaticInit28838f646466ea3e00177d9b924f76d4
             'Slim\\Psr7\\' => 10,
             'Slim\\' => 5,
         ),
+        'R' => 
+        array (
+            'React\\EventLoop\\' => 16,
+        ),
         'P' => 
         array (
             'Psr\\Log\\' => 8,
@@ -66,6 +70,10 @@ class ComposerStaticInit28838f646466ea3e00177d9b924f76d4
         'Slim\\' => 
         array (
             0 => __DIR__ . '/..' . '/slim/slim/Slim',
+        ),
+        'React\\EventLoop\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/react/event-loop/src',
         ),
         'Psr\\Log\\' => 
         array (

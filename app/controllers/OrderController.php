@@ -1,5 +1,7 @@
 <?php
 require_once './models/Order.php';
+require_once './models/Product.php';
+require_once './models/Employer.php';
 require_once './interfaces/IApiUsable.php';
 
 class OrderController extends Order implements IApiUsable
@@ -9,25 +11,96 @@ class OrderController extends Order implements IApiUsable
     {
         $parametros = $request->getParsedBody();
 
-        $amount_foods = $parametros['amount_foods'];
-        $amount_drinks = $parametros['amount_drinks'];
-        $foods = $parametros['foods'];
-        $drinks = $parametros['drinks'];
-        $cost = $parametros['cost'];
-        $time = $parametros['minutes'];
+        $food = Product::fetchOneByName($parametros['food']);
+        $drink = Product::fetchOneByName($parametros['drink']);
 
-        $orden = new Order();
-        $orden->amount_foods = $amount_foods;
-        $orden->amount_drinks = $amount_drinks;
-        $orden->foods = $foods;
-        $orden->drinks = $drinks;
-        $orden->cost = $cost;
-        $orden->time = $time*100;
+        $order = new Order();
+        $order->code_table = $parametros['code_table'];
 
-        $payload = json_encode(array("response" => "Orden ". $orden->create() ." creada con exito"));
+        if($food){
+          $order->id_food = $food[0]['id'];
+          $order->cost = $food[0]['cost'];
+          $order->time = $food[0]['time'];
+        }
+        if($drink){
+          $order->id_drink = $drink[0]['id'];
+          $order->cost += $drink[0]['cost'];
+          $order->time += $drink[0]['time'];
+        }
+
+        var_dump($order);
+
+        $payload = json_encode(array("response" => "Order ". $order->create() . "  creada con exito"));
+        Table::updateCost($order->code_table, $order->cost);
 
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private function DoOrder(&$employer, &$product, &$order){
+      if (!$employer) {
+        $employer = Employer::fetchAvaible();
+    
+        if (!$employer) {
+          Order::cancel($order[0]['id']);
+        } else {
+          $product[0]['time'] *= 2;
+        }
+      }
+      
+      if ($employer) {
+        Employer::to_work($employer[0]['id'], $order[0]['id']);
+        $loop = React\EventLoop\Loop::get();
+
+        $loop->addTimer($product[0]['time'], function () use($product) {
+        });
+
+        $loop->run();
+      }
+    }
+
+    public function Prepare($request, $response, $args){
+        $order = Order::next();
+        if($order){
+          $order[0]['begin_time'] = date('Y-m-d H:i:s', time());
+          
+          $product = Product::fetchOneById($order[0]['id_food']);
+          $employer = Employer::fetchAvaibleBySector($product[0]['id_sector']);
+          $this->DoOrder($employer, $product, $order);
+          
+          if($order[0]['canceled'] == 0){
+            $product = Product::fetchOneById($order[0]['id_drink']);
+            $employer = Employer::fetchAvaibleBySector($product[0]['id_sector']);
+            $this->DoOrder($employer, $product, $order);
+            
+            if($order[0]['canceled'] == 0){
+              $order[0]['end_time'] = date('Y-m-d H:i:s', time());
+              $end_time = new DateTime($order[0]['end_time']);
+              $begin_time = new DateTime($order[0]['begin_time']);
+              $end_time = $end_time->getTimestamp();
+              $begin_time = $begin_time->getTimestamp();
+              $diffTime = $end_time - $begin_time;
+              
+              $order[0]['state'] = 'listo para servir';
+              Order::update($order[0]);
+    
+              $payload = json_encode(array('response' => 'El pedido '. $order[0]['code'] . " fue entregado en " . $diffTime . " segudos"));
+            } else {
+              $payload = json_encode(array('response' => 'El pedido '. $order[0]['code'] . " fue cancelado ya que no contamos con personal bebida"));
+            }
+          } else {
+            $payload = json_encode(array('response' => 'El pedido '. $order[0]['code'] . " fue cancelado ya que no contamos con personal comida"));
+            
+          }
+        } else {
+          $payload = json_encode(array('response' => 'No hay mas pedidos'));
+        }
+
+        $response->getBody()->write($payload);
+
+
+        return $response->withHeader('Content-Type', 'application/json');
+
     }
 
     public function TraerUno($request, $response, $args)
