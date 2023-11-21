@@ -1,0 +1,3 @@
+id,code,state,id_food,id_drink,code_table,cost,time,begin_time,end_time,canceled,deleted
+1006,94101,"en preparacion",1106014107,1106014108,00001,1150,3,"2023-11-12 21:58:27","2023-11-12 21:58:27",0,0
+1007,94200,"en preparacion",1106014107,1106014108,00001,1150,3,"2023-11-12 21:52:20","2023-11-12 21:52:20",0,0

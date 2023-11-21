@@ -59,6 +59,8 @@ $app->group('/products', function (RouteCollectorProxy $group) {
 $app->group('/orders', function (RouteCollectorProxy $group) {
     $group->post('[/]', \OrderController::class . ':CargarUno')->add(new OrderMiddleware());
     $group->get('[/]', \OrderController::class . ':TraerTodos');
+    $group->get('/getCsv', \OrderController::class . ':GenerateCsv');
+    $group->post('/loadFromCsv', \OrderController::class . ':loadFromCsv');
     $group->get('/{id}', \OrderController::class . ':TraerUno');
     $group->put('/prepare', \OrderController::class . ':Prepare');
     $group->delete('/{id}', \OrderController::class . ':BorrarUno');

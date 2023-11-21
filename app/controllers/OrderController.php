@@ -3,6 +3,7 @@ require_once './models/Order.php';
 require_once './models/Product.php';
 require_once './models/Employer.php';
 require_once './interfaces/IApiUsable.php';
+require_once './utils/generateCsv.php';
 
 class OrderController extends Order implements IApiUsable
 {
@@ -27,8 +28,6 @@ class OrderController extends Order implements IApiUsable
           $order->cost += $drink[0]['cost'];
           $order->time += $drink[0]['time'];
         }
-
-        var_dump($order);
 
         $payload = json_encode(array("response" => "Order ". $order->create() . "  creada con exito"));
         Table::updateCost($order->code_table, $order->cost);
@@ -121,6 +120,59 @@ class OrderController extends Order implements IApiUsable
         $response->getBody()->write($payload);
         return $response
           ->withHeader('Content-Type', 'application/json');
+    }
+
+    public function GenerateCsv($request, $response, $args)
+    {
+        $lista = Order::fetchAll();
+        $payload = json_encode(array("response" => GenerateCsv("orders.csv", $lista)));
+
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private function LoadOrder($data){
+        $order = new Order();
+        $order->code = $data['code'];
+        $order->state = $data['state'];
+        $order->code_table = $data['code_table'];
+        $order->begin_time = $data['begin_time'];
+        $order->end_time = $data['end_time'];
+        $order->canceled = $data['canceled'];
+        $order->deleted = $data['deleted'];
+
+        $food = Product::fetchOneById($data['id_food']);
+        $drink = Product::fetchOneById($data['id_drink']);
+
+        if($food){
+          $order->id_food = $food[0]['id'];
+          $order->cost = $food[0]['cost'];
+          $order->time = $food[0]['time'];
+        }
+        if($drink){
+          $order->id_drink = $drink[0]['id'];
+          $order->cost += $drink[0]['cost'];
+          $order->time += $drink[0]['time'];
+        }
+        return "Order ". $order->load() . "  creada con exito";
+    }
+
+    public function LoadFromCsv($request, $response, $args)
+    { 
+        $orders = readCsv("orders.csv");
+        if ($orders != false){
+          $payload = array();
+          foreach($orders as $order){
+            $payload[] = $this->LoadOrder($order);
+          }
+          
+          $payload = json_encode(array("response" => $payload));
+        } else {
+          $payload = json_encode(array("error" => "No se puedo leer csv"));
+        }
+
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
     }
     
     public function ModificarUno($request, $response, $args)

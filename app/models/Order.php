@@ -5,11 +5,16 @@ include_once 'utils/filterNumericKeys.php';
 class Order implements ICRUD
 {
     public $state;
+    public $code;
     public $id_food;
     public $id_drink;
     public $code_table;
     public $cost;
     public $time;
+    public $begin_time;
+    public $end_time;
+    public $canceled;
+    public $deleted;
 
     public function create()
     {
@@ -24,6 +29,29 @@ class Order implements ICRUD
         $consulta->bindValue(':code_table', $this->code_table, PDO::PARAM_INT);
         $consulta->bindValue(':cost', $this->cost, PDO::PARAM_INT);
         $consulta->bindValue(':time', $this->time);
+        $consulta->execute();
+
+        return $objAccesoDatos->obtenerUltimoId();
+    }
+
+    public function load()
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (
+            code, state, id_food, id_drink, code_table, cost, time, begin_time, end_time, canceled, deleted) VALUES (
+            :code, :state, :id_food, :id_drink, :code_table, :cost, :time, :begin_time, :end_time, :canceled, :deleted)");
+
+        $consulta->bindValue(':code', $this->code, PDO::PARAM_INT);
+        $consulta->bindValue(':state', $this->state, PDO::PARAM_STR);
+        $consulta->bindValue(':id_food', $this->id_food, PDO::PARAM_INT);
+        $consulta->bindValue(':id_drink', $this->id_drink, PDO::PARAM_INT);
+        $consulta->bindValue(':code_table', $this->code_table, PDO::PARAM_INT);
+        $consulta->bindValue(':cost', $this->cost, PDO::PARAM_INT);
+        $consulta->bindValue(':time', $this->time, PDO::PARAM_INT);
+        $consulta->bindValue(':begin_time', $this->begin_time);
+        $consulta->bindValue(':end_time', $this->end_time);
+        $consulta->bindValue(':canceled', $this->canceled, PDO::PARAM_INT);
+        $consulta->bindValue(':deleted', $this->deleted, PDO::PARAM_INT);
         $consulta->execute();
 
         return $objAccesoDatos->obtenerUltimoId();
