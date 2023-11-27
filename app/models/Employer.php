@@ -45,13 +45,32 @@ class Employer extends Worker implements ICRUD
     public static function fetchByUserAndPassword($user, $pass)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM empleados WHERE username = :username AND password = :password;");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM empleados WHERE username = :username");
         $consulta->bindValue(':username', $user, PDO::PARAM_STR);
-        $consulta->bindValue(':password', $pass, PDO::PARAM_STR);
+
         $consulta->execute();
 
-        return array_map('filterNumericKeys', $consulta->fetchAll());
+        $response = array_map('filterNumericKeys', $consulta->fetchAll())[0];
+
+        if(!password_verify($pass, $response['password']))
+            return false;
+        return $response;
     }
+
+    public static function to_work($id, $id_order)
+    {
+        $db = AccesoDatos::obtenerInstancia();
+        $query = $db->prepararConsulta("UPDATE empleados SET id_order= :id_order WHERE id = :id");
+        $query->bindValue(':id_order', $id_order, PDO::PARAM_INT);
+        $query->bindValue(':id', $id, PDO::PARAM_INT);
+        
+        if(!$query->execute()) {
+            $errorInfo = $query->errorInfo();
+            $messageExcepcion = isset($errorInfo[2]) ? $errorInfo[2] : "Error desconocido";
+            throw new Exception($messageExcepcion);
+        }
+    }
+
 
     public static function fetchAvaibleBySector($id_sector)
     {
@@ -62,6 +81,7 @@ class Employer extends Worker implements ICRUD
 
         return array_map('filterNumericKeys', $consulta->fetchAll());
     }
+
     public static function fetchAvaible()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
@@ -79,15 +99,6 @@ class Employer extends Worker implements ICRUD
         $consulta->execute();
 
         return array_map('filterNumericKeys', $consulta->fetchAll());
-    }
-
-    public static function to_work($id, $id_order)
-    {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE empleados SET id_order= :id_order WHERE id = :id");
-        $consulta->bindValue(':id_order', $id_order, PDO::PARAM_INT);
-        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
-        $consulta->execute();
     }
 
     public static function update($id, $type, $name)

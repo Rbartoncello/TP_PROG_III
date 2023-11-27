@@ -17,19 +17,43 @@ class OrderMiddleware
 
     public function __invoke(Request $request, RequestHandler $handler): Response
     {   
-        $params = $request->getQueryParams();
+        $header = $request->getHeaderLine('Authorization');
+        $token = trim(explode("Bearer", $header)[1]);
 
-        $username = $params['username'];
-        $password = $params['password'];
+        try 
+        {
+            $user = AutentificadorJWT::ObtenerData($token)->usuario;
+            if ($user->type === 'mozo') {
+                $response = $handler->handle($request);
+            } else {
+                $response = new Response();
+                $payload = response(array('error' => 'El usuario ingresado no es el corrrecto para realizar esta accion'), 400, false);
+                $response->getBody()->write($payload);
+            }
+        } catch (Exception $e) 
+        {
+            $payload = response(array('error' => $e->getMessage()), 400, false);
+        }
 
-        $user = EmployerController::fetchByUserAndPassword($username, $password);
+        return $response->withHeader('Content-Type', 'application/json');
+    }
 
-        if ($user && $user[0]['type'] === 'mozo') {
-            $response = $handler->handle($request);
-        } else {
-            $response = new Response();
-            $payload = json_encode(array('error' => 'Necesita ser un mozo para poder tomar una orden'));
-            $response->getBody()->write($payload);
+    public function AuthorizedRoleMiddleware(Request $request, RequestHandler $handler): Response{
+        try 
+        {
+            $header = $request->getHeaderLine('Authorization');
+            $token = trim(explode("Bearer", $header)[1]);
+            $user = AutentificadorJWT::ObtenerData($token)->usuario;
+            if (in_array($user->type, ['bartender', 'cervecero', 'cocinero'])) {
+                $response = $handler->handle($request);
+            } else {
+                $response = new Response();
+                $payload = response(array('error' => 'El usuario ingresado no es el corrrecto para realizar esta accion'), 400, false);
+                $response->getBody()->write($payload);
+            }
+        } catch (Exception $e) 
+        {
+            $payload = response(array('error' => $e->getMessage()), 400, false);
         }
 
         return $response->withHeader('Content-Type', 'application/json');

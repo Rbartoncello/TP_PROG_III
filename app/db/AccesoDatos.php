@@ -20,6 +20,7 @@ class AccesoDatos
         if (!isset(self::$objAccesoDatos)) {
             self::$objAccesoDatos = new AccesoDatos();
         }
+        
         return self::$objAccesoDatos;
     }
 

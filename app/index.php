@@ -16,6 +16,8 @@ require_once './controllers/TableController.php';
 require_once './db/AccesoDatos.php';
 require_once './middlewares/AuthMiddleware.php';
 require_once './middlewares/OrderMiddleware.php';
+require_once './utils/AutentificadorJWT.php';
+require_once './utils/response.php';
 
 
 
@@ -40,6 +42,62 @@ $app->get('[/]', function (Request $request, Response $response) {
     return $response->withHeader('Content-Type', 'application/json');
 });
 
+$app->group('/auth', function (RouteCollectorProxy $group) {
+    $group->post('/login', function (Request $request, Response $response) {    
+        $parametros = $request->getParsedBody();
+
+        $username = $parametros['usuario'];
+        $password = $parametros['contasenia'];
+
+        $user = EmployerController::fetchByUserAndPassword($username, $password);
+
+        if($user){
+            $datos = array('usuario' => $user);
+            $token = AutentificadorJWT::CrearToken($datos);
+            $payload = response(array('jwt' => $token));
+        } else {
+            $payload = json_encode(array('error' => 'Usuario o contraseña incorrectos'));
+        }
+    
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+    $group->get('/checkToken', function (Request $request, Response $response) {
+        $header = $request->getHeaderLine('Authorization');
+        $token = trim(explode("Bearer", $header)[1]);
+        $esValido = false;
+        
+        try {
+            AutentificadorJWT::verificarToken($token);
+            $esValido = true;
+        } catch (Exception $e) {
+            $payload = json_encode(array('error' => $e->getMessage()));
+        }
+    
+        if ($esValido) {
+            $payload = json_encode(array('valid' => $esValido));
+        }
+    
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+    $group->get('/checkRol', function (Request $request, Response $response) {
+        $header = $request->getHeaderLine('Authorization');
+        $token = trim(explode("Bearer", $header)[1]);
+
+        try 
+        {
+            $payload = response(array('datos' => AutentificadorJWT::ObtenerData($token)));
+        } catch (Exception $e) 
+        {
+            $payload = response(array('error' => $e->getMessage()), 400, false);
+        }
+
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+});
+
 
 
 $app->group('/users', function (RouteCollectorProxy $group) {
@@ -57,15 +115,16 @@ $app->group('/products', function (RouteCollectorProxy $group) {
 });
 
 $app->group('/orders', function (RouteCollectorProxy $group) {
-    $group->post('[/]', \OrderController::class . ':CargarUno')->add(new OrderMiddleware());
-    $group->get('[/]', \OrderController::class . ':TraerTodos');
+    $group->post('[/]', \OrderController::class . ':Create')->add(new OrderMiddleware());
+    $group->get('[/]', \OrderController::class . ':FetchAvailable')->add(\OrderMiddleware::class . ':AuthorizedRoleMiddleware');
     $group->get('/getCsv', \OrderController::class . ':GenerateCsv');
     $group->post('/loadFromCsv', \OrderController::class . ':loadFromCsv');
-    $group->get('/{id}', \OrderController::class . ':TraerUno');
-    $group->put('/prepare', \OrderController::class . ':Prepare');
+    $group->post('/savePhoto', \OrderController::class . ':SavePhoto')->add(new OrderMiddleware());;
+    $group->get('/estamateWait', \OrderController::class . ':ShowEstimatedWaitTime');
+    $group->get('/ordersWithTime', \OrderController::class . ':ShowOrderListWithWaitTimes')->add(new AuthMiddleware());
+    $group->put('/pickup', \OrderController::class . ':Pickup');
+    $group->put('/finish', \OrderController::class . ':DoFinishOrder');
     $group->delete('/{id}', \OrderController::class . ':BorrarUno');
-
-
 });
 
 $app->group('/tables', function (RouteCollectorProxy $group) {

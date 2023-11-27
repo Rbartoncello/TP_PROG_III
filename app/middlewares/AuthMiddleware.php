@@ -4,6 +4,9 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Psr7\Response;
 
+require_once './utils/response.php';
+
+
 class AuthMiddleware
 {
     /**
@@ -16,19 +19,22 @@ class AuthMiddleware
      */
     public function __invoke(Request $request, RequestHandler $handler): Response
     {   
-        $parametros = $request->getQueryParams();
+        $header = $request->getHeaderLine('Authorization');
+        $token = trim(explode("Bearer", $header)[1]);
 
-        $username = $parametros['username'];
-        $password = $parametros['password'];
-
-        $user = EmployerController::fetchByUserAndPassword($username, $password);
-
-        if ($user && $user[0]['type'] === 'socio') {
-            $response = $handler->handle($request);
-        } else {
-            $response = new Response();
-            $payload = json_encode(array('error' => 'El usuario ingresado no es el corrrecto para realizar esta accion'));
-            $response->getBody()->write($payload);
+        try 
+        {
+            $user = AutentificadorJWT::ObtenerData($token)->usuario;
+            if ($user->type === 'socio') {
+                $response = $handler->handle($request);
+            } else {
+                $response = new Response();
+                $payload = response(array('error' => 'El usuario ingresado no es el corrrecto para realizar esta accion'), 400, false);
+                $response->getBody()->write($payload);
+            }
+        } catch (Exception $e) 
+        {
+            $payload = response(array('error' => $e->getMessage()), 400, false);
         }
 
         return $response->withHeader('Content-Type', 'application/json');
@@ -44,7 +50,7 @@ class AuthMiddleware
 
         if ($user) {
             $response = new Response();
-            $payload = json_encode(array('error' => 'El usuario que quiere registrar ya se encuentra registrado'));
+            $payload = response(array('error' => 'El usuario que quiere registrar ya se encuentra registrado'), 400, false);
             $response->getBody()->write($payload);
         } else {
             $response = $handler->handle($request);

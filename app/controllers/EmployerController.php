@@ -2,51 +2,51 @@
 require_once './models/Employer.php';
 require_once './interfaces/IApiUsable.php';
 require_once './enums/sectors.php';
+require_once './utils/response.php';
 
 class EmployerController extends Employer implements IApiUsable
 {
     public function CargarUno($request, $response, $args)
     {
-        $parametros = $request->getParsedBody();
+        $params = $request->getParsedBody();
 
-        $type = $parametros['type'];
-        $name = $parametros['name'];
-        $surname = $parametros['surname'];
-        $username = $parametros['username'];
-        $password = $parametros['password'];
-
-        $tipos_empleados = array(
-          "bartender" => 1,
-          "cerveceros" => 2,
-          "cocineros" => 3,
-          "mozos" => 4,
-          "socios" => 5
-        );
-
-
-//agregar mail contraseña
-        if(in_array($type, ['bartender', 'cervecero', 'mozo', 'cocinero', 'socio'])){
-          $usr = new Employer();
-          $usr->type = $type;
-          switch($type){
-            case 'bartender':
-              $usr->id_sector = 1;
-              break;
-            case 'cervecero':
-              $usr->id_sector = 2;
-              break;
-            case 'cocinero':
-              $usr->id_sector = 3;
-              break;
-          }
-          $usr->name = $name;
-          $usr->surname = $surname;
-          $usr->username = $username;
-          $usr->password = $password;
-
-          $payload = json_encode(array("response" => "Usuario ". $usr->create() ." creado con exito"));
-        } else {
-          $payload = json_encode(array("error" => "El tipo de empleado ingresado no es valido ['bartender', 'cervecero', 'mozo', 'cocinero', 'socio]"));
+        if(isset($params["name"]) && isset($params["surname"]) && isset($params["username"]) && isset($params["password"]) && isset($params["type"]))
+        {
+            $type = $params['type'];
+            if(in_array($type, ['bartender', 'cervecero', 'mozo', 'cocinero', 'socio']))
+            {
+                $usr = new Employer();
+                $usr->type = $type;
+                switch($type)
+                {
+                  case 'bartender':
+                    $usr->id_sector = 1;
+                    break;
+                  case 'cervecero':
+                    $usr->id_sector = 2;
+                    break;
+                  case 'cocinero':
+                    $usr->id_sector = 3;
+                    break;
+                }
+                $usr->name = $params['name'];
+                $usr->surname = $params['surname'];
+                $usr->username = $params['username'];
+                $usr->password = password_hash($params['password'], PASSWORD_DEFAULT);
+                try 
+                {
+                    $payload = response(array("response" => "Usuario ". $usr->create() ." creado con exito"));
+                } catch (Exception $e) 
+                {
+                    $payload = response(array("error" => $e->getMessage()), 400, false);
+                }
+            } else 
+            {
+                $payload = response(array("error" => "El tipo de empleado ingresado no es valido ['bartender', 'cervecero', 'mozo', 'cocinero', 'socio]"), 400, false);
+            }
+        } else 
+        {
+            $payload = response(array("error" => "mal ingreso de parametros"), 400, false);
         }
 
         $response->getBody()->write($payload);
@@ -78,10 +78,10 @@ class EmployerController extends Employer implements IApiUsable
     public function ModificarUno($request, $response, $args)
     {
         $id = $args['id'];
-        $parametros = $request->getParsedBody();
+        $params = $request->getParsedBody();
 
-        $type = $parametros['type'];
-        $name = $parametros['name'];
+        $type = $params['type'];
+        $name = $params['name'];
         
         Employer::update($id, $type, $name);
 
@@ -93,8 +93,8 @@ class EmployerController extends Employer implements IApiUsable
 
     public function BorrarUno($request, $response, $args)
     {
-        $parametros = $request->getQueryParams();
-        $id = $parametros['id'];
+        $params = $request->getQueryParams();
+        $id = $params['id'];
         Employer::delete($id);
 
         $payload = json_encode(array("response" => "Empleado borrado con exito"));

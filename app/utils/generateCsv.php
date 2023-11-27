@@ -1,26 +1,21 @@
 <?php
-function generateCsv($csvFileName, $data){
-    try {
-        $file = fopen($csvFileName, 'w');
-    
-        if (!$file) {
-            throw new Exception("No se pudo abrir el archivo $csvFileName para escritura.");
-        }
+function generateCsvContent($data) {
+    $output = fopen('php://temp', 'w+');
 
-        fputcsv($file, array_keys($data[0]));
-    
-        foreach ($data as $row) {
-            if (fputcsv($file, $row) === false) {
-                throw new Exception("Error al escribir en el archivo $csvFileName.");
-            }
-        }
-    
-        fclose($file);
-        return "Datos guardados en $csvFileName.";
-    } catch (Exception $e) {
-        return "Error: " . $e->getMessage();
+    if (!$output) {
+        throw new Exception("No se pudo abrir el puntero de archivo temporal para escritura.");
     }
+
+    fputcsv($output, array_keys($data[0]));
+
+    foreach ($data as $row) {
+        if (fputcsv($output, $row) === false) {
+            throw new Exception("Error al escribir en el puntero de archivo temporal.");
+        }
+    }
+    fclose($output); 
 }
+
 
 function readCsv($csvFileName) {
     $result = array();
