@@ -1,89 +1,34 @@
 <?php
 require_once './models/Product.php';
 require_once './interfaces/IApiUsable.php';
+require_once './utils/response.php';
 
 
-class ProductController extends Product implements IApiUsable
+class ProductController extends Product
 {
-  private $product_avaibles = array('bebida', 'comida');
-
-    public function CargarUno($request, $response, $args)
+    public static function Load($request, $response, $args)
     {
-        $parametros = $request->getParsedBody();
+        $params = $request->getParsedBody();
+        $dataCsv = $params['data'];
 
-        $type = $parametros['type'];
-        $description = $parametros['descripcion'];
-
-        if(in_array($type, $this->product_avaibles)){
-          $usr = new Product();
-          $usr->type = $type;
-          $usr->description = $description;
-
-          $payload = json_encode(array("response" => "Producto ". $usr->create() ." creado con exito"));
-        } else {
-          $payload = json_encode(array("error" => "El tipo de producto ingresado no es valido ['bebida', 'comida']"));
-        }
+        if ($dataCsv['archivo_csv']['error'] == 0) {
+          $archivo = fopen($dataCsv['archivo_csv']['tmp_name'], 'r');
+      
+          if ($archivo) {
+              $encabezados = fgetcsv($archivo, 0, ',');
+              print_r($encabezados);
+              while (($fila = fgetcsv($archivo, 0, ',')) !== false) {
+                  print_r($fila);
+              }
+              fclose($archivo);
+          } else {
+              echo "Error al abrir el archivo CSV";
+          }
+      } else {
+          $payload = response(array("error" => "El tipo de producto ingresado no es valido ['bebida', 'comida']"), 400, false);
+      }
 
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
-    }
-
-    public function TraerUno($request, $response, $args)
-    {
-        // Buscamos usuario por nombre
-        $usr = $args['usuario'];
-        $usuario = Usuario::obtenerUsuario($usr);
-        $payload = json_encode($usuario);
-
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
-    }
-
-    public function TraerTodos($request, $response, $args)
-    {
-        $lista = Product::fetchAll();
-        $payload = json_encode(array("response" => $lista));
-
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
-    }
-
-    public function TraerUnoPorNombre($request, $response, $args)
-    {
-        $lista = Product::fetchOneByName($args['name']);
-        $payload = json_encode(array("response" => $lista));
-
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
-    }
-    
-    public function ModificarUno($request, $response, $args)
-    {
-        $id = $args['id'];
-        $parametros = $request->getParsedBody();
-        
-        $type = $parametros['type'];
-        $description = $parametros['description'];
-        
-        Product::update($id, $type, $description);
-
-        $payload = json_encode(array("response" => "Produto modificado con exito"));
-
-        $response->getBody()->write($payload);
-        return $response->withHeader('Content-Type', 'application/json');
-    }
-
-    public function BorrarUno($request, $response, $args)
-    {
-      $id = $args['id'];
-      Product::delete($id);
-
-      $payload = json_encode(array("response" => "Producto borrado con exito"));
-
-      $response->getBody()->write($payload);
-      return $response->withHeader('Content-Type', 'application/json');
     }
 }

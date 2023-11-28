@@ -124,6 +124,10 @@ $app->group('/tables', function (RouteCollectorProxy $group) {
     $group->put('/pay', \TableController::class . ':Pay');
 });
 
+$app->group('/products', function (RouteCollectorProxy $group) {
+    $group->post('[/]', \ProductController::class . ':Load');
+});
+
 $app->get('/test', function (Request $request, Response $response) {
     $payload = json_encode(array('method' => 'GET', 'msg' => "Bienvenido a SlimFramework 2023"));
     $response->getBody()->write($payload);

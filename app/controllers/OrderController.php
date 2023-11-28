@@ -50,9 +50,7 @@ class OrderController extends Order
     public function SavePhoto($request, $response, $args)
     {
       $params = $request->getParsedBody();
-
       $id_table = $params['id'];
-
       $file_type = $_FILES['image']['type'];
 
       if ((strpos($file_type, "png") || strpos($file_type, "jpeg"))){
