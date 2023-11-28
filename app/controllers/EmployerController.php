@@ -71,8 +71,7 @@ class EmployerController extends Employer implements IApiUsable
         $payload = json_encode(array("response" => $lista));
 
         $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+        return $response->withHeader('Content-Type', 'application/json');
     }
     
     public function ModificarUno($request, $response, $args)

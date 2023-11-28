@@ -199,46 +199,15 @@ class OrderController extends Order
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-
-    public function TraerUno($request, $response, $args)
+    public function ShowOrdersCompleted($request, $response, $args)
     {
-        $id = $args['id'];
-        $order = Order::fetchById($id);
-        $payload = json_encode($order);
-
+        try {
+            $payload = response(array("response" => Order::GetOrdersCompleted()));
+        } catch (Exception $e) {
+            $payload = response(array("error" => $e->getMessage()), 400, false);
+        }
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
-    }
-
-    
-
-    
-
-    private function LoadOrder($data)
-    {
-        $order = new Order();
-        $order->code = $data['code'];
-        $order->state = $data['state'];
-        $order->code_table = $data['code_table'];
-        $order->begin_time = $data['begin_time'];
-        $order->end_time = $data['end_time'];
-        $order->canceled = $data['canceled'];
-        $order->deleted = $data['deleted'];
-
-        $food = Product::fetchOneById($data['id_food']);
-        $drink = Product::fetchOneById($data['id_drink']);
-
-        if($food){
-          $order->id_food = $food[0]['id'];
-          $order->cost = $food[0]['cost'];
-          $order->time = $food[0]['time'];
-        }
-        if($drink){
-          $order->id_drink = $drink[0]['id'];
-          $order->cost += $drink[0]['cost'];
-          $order->time += $drink[0]['time'];
-        }
-        return "Order ". $order->load() . "  creada con exito";
     }
 
     public function LoadFromCsv($request, $response, $args)
@@ -257,30 +226,5 @@ class OrderController extends Order
 
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
-    }
-    
-    public function ModificarUno($request, $response, $args)
-    {
-        $parametros = $request->getParsedBody();
-
-        $nombre = $parametros['nombre'];
-        Usuario::modificarUsuario($nombre);
-
-        $payload = json_encode(array("mensaje" => "Usuario modificado con exito"));
-
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
-    }
-
-    public function BorrarUno($request, $response, $args)
-    {
-      $id = $args['id'];
-      Order::delete($id);
-
-      $payload = json_encode(array("response" => "Pedido borrado con exito"));
-
-      $response->getBody()->write($payload);
-      return $response->withHeader('Content-Type', 'application/json');
     }
 }

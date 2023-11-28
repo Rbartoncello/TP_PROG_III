@@ -98,8 +98,6 @@ $app->group('/auth', function (RouteCollectorProxy $group) {
     });
 });
 
-
-
 $app->group('/users', function (RouteCollectorProxy $group) {
     $group->post('/workers/employers', \EmployerController::class . ':CargarUno')->add(\AuthMiddleware::class . ':CheckUsername')->add(new AuthMiddleware());
     $group->get('/workers/employers', \EmployerController::class . ':TraerTodos');
@@ -107,31 +105,23 @@ $app->group('/users', function (RouteCollectorProxy $group) {
     $group->delete('/workers/employers', \EmployerController::class . ':BorrarUno')->add(new AuthMiddleware());
 });
 
-$app->group('/products', function (RouteCollectorProxy $group) {
-    $group->post('[/]', \ProductController::class . ':CargarUno');
-    $group->get('[/]', \ProductController::class . ':TraerTodos');
-    $group->put('/{id}', \ProductController::class . ':ModificarUno');
-    $group->delete('/{id}', \ProductController::class . ':BorrarUno');
-});
-
 $app->group('/orders', function (RouteCollectorProxy $group) {
     $group->post('[/]', \OrderController::class . ':Create')->add(new OrderMiddleware());
     $group->get('[/]', \OrderController::class . ':FetchAvailable')->add(\OrderMiddleware::class . ':AuthorizedRoleMiddleware');
     $group->get('/getCsv', \OrderController::class . ':GenerateCsv');
     $group->post('/loadFromCsv', \OrderController::class . ':loadFromCsv');
-    $group->post('/savePhoto', \OrderController::class . ':SavePhoto')->add(new OrderMiddleware());;
+    $group->post('/savePhoto', \OrderController::class . ':SavePhoto')->add(new OrderMiddleware());
     $group->get('/estamateWait', \OrderController::class . ':ShowEstimatedWaitTime');
     $group->get('/ordersWithTime', \OrderController::class . ':ShowOrderListWithWaitTimes')->add(new AuthMiddleware());
     $group->put('/pickup', \OrderController::class . ':Pickup');
     $group->put('/finish', \OrderController::class . ':DoFinishOrder');
-    $group->delete('/{id}', \OrderController::class . ':BorrarUno');
+    $group->get('/completed', \OrderController::class . ':ShowOrdersCompleted')->add(new OrderMiddleware());
 });
 
 $app->group('/tables', function (RouteCollectorProxy $group) {
-    $group->post('[/]', \TableController::class . ':CargarUno');
-    $group->get('[/]',\TableController::class . ':TraerTodos');
-    $group->put('/{id}', \TableController::class . ':ModificarUno');
-    $group->delete('/{id}', \TableController::class . ':BorrarUno');
+    $group->put('/orderDelevered', \TableController::class . ':OrderDelevered');
+    $group->get('[/]', \TableController::class . ':ShowTables')->add(new OrderMiddleware());
+    $group->put('/pay', \TableController::class . ':Pay');
 });
 
 $app->get('/test', function (Request $request, Response $response) {

@@ -34,7 +34,9 @@ class AuthMiddleware
             }
         } catch (Exception $e) 
         {
+            $response = new Response();
             $payload = response(array('error' => $e->getMessage()), 400, false);
+            $response->getBody()->write($payload);
         }
 
         return $response->withHeader('Content-Type', 'application/json');

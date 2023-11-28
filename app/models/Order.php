@@ -241,6 +241,41 @@ class Order
         throw new Exception("id mal ingresado");
     }
 
+    public static function GetOrdersCompleted()
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $query = $objAccesoDatos->prepararConsulta("SELECT * FROM pedidos p WHERE EXISTS ( SELECT 1 FROM detallespedido d WHERE d.id_order = p.id AND d.status = 'listo para servir' ) AND NOT EXISTS ( SELECT 1 FROM detallespedido d2 WHERE d2.id_order = p.id AND d2.status <> 'listo para servir' );");
+
+        if(!$query->execute()) {
+            $errorInfo = $query->errorInfo();
+            $messageExcepcion = isset($errorInfo[2]) ? $errorInfo[2] : "Error desconocido";
+            throw new Exception($messageExcepcion);
+        }
+        
+        return array_map('filterNumericKeys', $query->fetchAll());
+    }
+
+    public static function SetTimeDeleveredOrder($id)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $query = $objAccesoDatos->prepararConsulta(
+            "UPDATE pedidos 
+            SET end_time=:end_time
+            WHERE id = :id"
+            );
+        $query->bindValue(':id', $id, PDO::PARAM_INT);
+        $query->bindValue(':end_time', date("Y-m-d H:i:s"), PDO::PARAM_INT);
+
+        if(!$query->execute()) {
+            $errorInfo = $query->errorInfo();
+            $messageExcepcion = isset($errorInfo[2]) ? $errorInfo[2] : "Error desconocido";
+            throw new Exception($messageExcepcion);
+        } 
+        if($query->rowCount() === 0){
+            throw new Exception("no se a modificado tiempo de finalizacion de pedido");
+        }
+    }
+
     public static function fetchById($id)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
@@ -253,46 +288,5 @@ class Order
         }
 
         return array_map('filterNumericKeys', $query->fetchAll());
-    }
-
-    public static function update($order)
-    {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $query = $objAccesoDato->prepararConsulta("UPDATE pedidos SET state = :state, begin_time = :begin_time, end_time = :end_time WHERE id = :id");
-        $query->bindValue(':state', $order['state'], PDO::PARAM_STR);
-        $query->bindValue(':id', $order['id'], PDO::PARAM_INT);
-        $query->bindValue(':begin_time', $order['begin_time'], PDO::PARAM_STR);
-        $query->bindValue(':end_time', $order['begin_time'], PDO::PARAM_INT);
-        if(!$query->execute()) {
-            $errorInfo = $query->errorInfo();
-            $messageExcepcion = isset($errorInfo[2]) ? $errorInfo[2] : "Error desconocido";
-            throw new Exception($messageExcepcion);
-        }
-    }
-
-    public static function cancel($id)
-    {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $query = $objAccesoDato->prepararConsulta("UPDATE pedidos SET canceled = :canceled WHERE id = :id");
-        $query->bindValue(':id', $id, PDO::PARAM_INT);
-        $query->bindValue(':canceled', true, PDO::PARAM_BOOL);
-        if(!$query->execute()) {
-            $errorInfo = $query->errorInfo();
-            $messageExcepcion = isset($errorInfo[2]) ? $errorInfo[2] : "Error desconocido";
-            throw new Exception($messageExcepcion);
-        }
-    }
-
-    public static function delete($id)
-    {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $query = $objAccesoDato->prepararConsulta("UPDATE pedidos SET deleted = :deleted WHERE id = :id");
-        $query->bindValue(':id', $id, PDO::PARAM_INT);
-        $query->bindValue(':deleted', true, PDO::PARAM_BOOL);
-        if(!$query->execute()) {
-            $errorInfo = $query->errorInfo();
-            $messageExcepcion = isset($errorInfo[2]) ? $errorInfo[2] : "Error desconocido";
-            throw new Exception($messageExcepcion);
-        }
     }
 }
